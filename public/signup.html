@@ -4,10 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Signup</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <body>
     <h1>Signup</h1>
-    <form action="/signup" method="post">
+    <form action="/signup" method="post" id="signupForm">
         <label for="name">Name:</label>
         <input type="text" id="name" name="name" required><br>
 
@@ -23,4 +24,56 @@
         <button type="submit">Signup</button>
     </form>
 </body>
+<script>
+
+    const baseURL = ''
+
+const signupForm = document.getElementById('signupForm');
+
+ signupForm.addEventListener('submit' , async(event)=>{
+
+    event.preventDefault();
+
+    const formData = new FormData(event.target);
+    const  name = formData.get('name');
+    const email = formData.get('email');
+    const phone = formData.get('phone')
+    const password = formData.get('password');
+
+   
+
+        axios.post(baseURL+'/signup',{
+            name:name,
+            email:email,
+            phone:phone,
+            password:password
+        }).then(response=>{
+
+            if(response.status === 200){
+
+             alert('successfully signed in')
+
+             window.location.href = '/login.html';
+          
+
+
+            }
+
+    } )
+
+
+.catch(err=>{
+            
+          if(err.response.status===400){
+            console.log(err.response.data)
+
+           alert("user already exist");
+           
+
+
+          }
+        })
+    
+})
+</script>
 </html>
