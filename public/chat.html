@@ -1,0 +1,41 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat App</title>
+</head>
+<body>
+    <h1>Chat App:</h1>
+    <ul id="users"></ul>
+    
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script>
+        const baseURL = ''; // Replace with your backend URL
+
+        // Function to fetch and display users who have logged in
+        const displayUsers = async () => {
+            try {
+                const response = await axios.get(baseURL + '/login/loggedIn');
+                const users = response.data.users;
+                console.log(users);
+
+                const usersList = document.getElementById('users');
+                usersList.innerHTML = '';
+
+                users.forEach(user => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${user.name} joined`;
+                    usersList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error fetching users:', error);
+            }
+        };
+
+        // Call the displayUsers function when the page loads
+        window.addEventListener('DOMContentLoaded', displayUsers);
+    </script>
+</body>
+</html>
