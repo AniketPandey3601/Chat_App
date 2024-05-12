@@ -42,6 +42,10 @@
     <h1>Chat App:</h1>
     <ul id="users"></ul>
 
+    <div id="message-cont">
+        <ul id="messageList"></ul>
+    </div>
+
     <div id="messageContainer">
         <input type="text" id="messageInput" placeholder="Type your message..." required>
         <button id="sendButton">Send</button>
@@ -98,8 +102,33 @@
     }
 });
 
+
+const fetchAllMessages = async () => {
+        try {
+            const response = await axios.get(baseURL + '/chatMessages/getAllMessages', {
+                headers: {
+                    Authorization: `Bearer ${localStorage.getItem('token')}`
+                }
+            });
+            const allMessages = response.data.messages;
+            const messageList = document.getElementById('messageList');
+                messageList.innerHTML = '';
+
+                allMessages.forEach(message => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = `${message.User.name}: ${message.message}`;
+                    messageList.appendChild(listItem);
+                });
+            // Process the list of messages as needed
+        } catch (error) {
+            console.error('Error fetching all messages:', error);
+        }
+    };
+
+
         // Call the displayUsers function when the page loads
         window.addEventListener('DOMContentLoaded', displayUsers);
+        window.onload = fetchAllMessages;
     </script>
 </body>
 </html>
