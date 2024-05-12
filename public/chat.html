@@ -95,6 +95,7 @@
         });
 
         console.log(response.data.message);
+        document.getElementById('messageInput').value = ''
         // Optionally, update the UI to indicate that the message was sent successfully
     } catch (error) {
         console.error('Error sending message:', error);
@@ -128,7 +129,8 @@ const fetchAllMessages = async () => {
 
         // Call the displayUsers function when the page loads
         window.addEventListener('DOMContentLoaded', displayUsers);
-        window.onload = fetchAllMessages;
+        setInterval(fetchAllMessages, 1000);
+        
     </script>
 </body>
 </html>
