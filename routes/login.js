@@ -75,7 +75,10 @@ router.post('', async (req, res) => {
         }
 
         // Create a JWT token with user id encrypted
-        const token = jwt.sign({ userId: user.id }, JWT_SECRET_KEY, { expiresIn: '1h' }); // Token expires in 1 hour
+        const token = jwt.sign({ userId: user.id }, JWT_SECRET_KEY, { expiresIn: '1h' });
+         // Token expires in 1 hour
+
+        //  console.log(user.id)
 
         // Send the JWT token to the frontend
         res.status(200).json({ token: token });

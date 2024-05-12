@@ -1,13 +1,16 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 
+
 const app = express();
 const cors = require('cors');
 
 const sequelize = require('./models/index')
 const signupRoute = require('./routes/signup')
 const loginRoute = require('./routes/login');
-
+const chatRoute = require('./routes/chatMessages');
+const messages = require('./models/messages');
+const User = require('./models/User')
 require('dotenv').config();
 
 app.use(bodyParser.json());
@@ -24,10 +27,15 @@ app.use(cors({
 }))
 
 
+User.hasMany(messages,{ foreignKey: 'userId' })
+messages.belongsTo(User, { foreignKey: 'userId' });
+
+
 
 
 app.use('/signup', signupRoute);
 app.use('/login', loginRoute);
+app.use('/chatMessages',chatRoute)
 
 sequelize.sync().then(() => {
     app.listen((process.env.PORT || 3000), () => {

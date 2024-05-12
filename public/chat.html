@@ -5,12 +5,49 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chat App</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
+<style>
+       #messageContainer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            width: 100%;
+            padding: 10px;
+            background-color: #f0f0f0;
+        }
+        #messageInput {
+            /* flex: 1; */
+            width: 100%;
+            margin-right: 10px;
+            padding: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+        }
+
+        #sendButton {
+            margin-right: 50px;
+            padding: 7px 15px;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+</style>
 <body>
     <h1>Chat App:</h1>
     <ul id="users"></ul>
+
+    <div id="messageContainer">
+        <input type="text" id="messageInput" placeholder="Type your message..." required>
+        <button id="sendButton">Send</button>
+    </div>
     
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    
     <script>
         const baseURL = ''; // Replace with your backend URL
 
@@ -19,7 +56,6 @@
             try {
                 const response = await axios.get(baseURL + '/login/loggedIn');
                 const users = response.data.users;
-                console.log(users);
 
                 const usersList = document.getElementById('users');
                 usersList.innerHTML = '';
@@ -33,6 +69,34 @@
                 console.error('Error fetching users:', error);
             }
         };
+
+        document.getElementById('sendButton').addEventListener('click', async () => {
+
+            console.log(localStorage.getItem('token'))
+    const messageInput = document.getElementById('messageInput').value.trim();
+
+    if (!messageInput) {
+                alert('Please enter a message'); // Show alert if message input is empty
+                return;
+            }
+    
+
+    try {
+        const response = await axios.post(baseURL + '/chatMessages/sendMessage', {
+            message: messageInput
+        }, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+
+        console.log(response.data.message);
+        // Optionally, update the UI to indicate that the message was sent successfully
+    } catch (error) {
+        console.error('Error sending message:', error);
+        // Handle error
+    }
+});
 
         // Call the displayUsers function when the page loads
         window.addEventListener('DOMContentLoaded', displayUsers);
