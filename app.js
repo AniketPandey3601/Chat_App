@@ -9,6 +9,7 @@ const sequelize = require('./models/index')
 const signupRoute = require('./routes/signup')
 const loginRoute = require('./routes/login');
 const chatRoute = require('./routes/chatMessages');
+const groupRoutes = require('./routes/groups')
 const messages = require('./models/messages');
 const User = require('./models/User')
 require('dotenv').config();
@@ -36,6 +37,7 @@ messages.belongsTo(User, { foreignKey: 'userId' });
 app.use('/signup', signupRoute);
 app.use('/login', loginRoute);
 app.use('/chatMessages',chatRoute)
+app.use('/groups', groupRoutes)
 
 sequelize.sync().then(() => {
     app.listen((process.env.PORT || 3000), () => {

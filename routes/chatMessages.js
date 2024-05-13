@@ -31,24 +31,11 @@ router.post('/sendMessage', authenticateToken, async (req, res) => {
 
 router.get('/getAllMessages', authenticateToken, async (req, res) => {
     try {
-        // Fetch all chat messages from the database
-        // const allMessages = await messages.findAll({  include: [{
-        //     model: User,
-        //     attributes: ['name'], // Select only the 'name' attribute of the user
-        // }]}
-        // );
-
+        
 
         const allMessages = await messages.findAll({ include: User });
 
-        // const formattedMessages = allMessages.map(message => ({
-        //     username: message.user.name,
-        //     message: message.message
-        // }));
-
-        // // Send the list of messages as a response
-        // res.status(200).json({ messages: formattedMessages });
-
+        
         res.status(200).json({ messages: allMessages });
     } catch (error) {
         console.error('Error fetching chat messages:', error);

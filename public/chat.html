@@ -1,4 +1,4 @@
-<!-- index.html -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -8,35 +8,40 @@
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
 </head>
 <style>
-       #messageContainer {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            bottom: 0;
-            left: 0;
-            width: 100%;
-            padding: 10px;
-            background-color: #f0f0f0;
-        }
-        #messageInput {
-            /* flex: 1; */
-            width: 100%;
-            margin-right: 10px;
-            padding: 5px;
-            border: 1px solid #ccc;
-            border-radius: 5px;
-        }
+    #messageContainer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        width: 100%;
+        padding: 10px;
+        background-color: #f0f0f0;
+    }
 
-        #sendButton {
-            margin-right: 50px;
-            padding: 7px 15px;
-            background-color: #007bff;
-            color: #fff;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+    #messageInput {
+        /* flex: 1; */
+        width: 100%;
+        margin-right: 10px;
+        padding: 5px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+    }
+
+    #sendButton {
+        margin-right: 50px;
+        padding: 7px 15px;
+        background-color: #007bff;
+        color: #fff;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+    }
+
+    #messageList {
+        margin-top: 50px; /* Adjust as needed */
+    }
 </style>
 <body>
     <h1>Chat App:</h1>
@@ -50,13 +55,19 @@
         <input type="text" id="messageInput" placeholder="Type your message..." required>
         <button id="sendButton">Send</button>
     </div>
+
+    <div id="groupList">
+        <h2>Groups:</h2>
+        <ul id="groups"></ul>
+        <input type="text" id="groupNameInput" placeholder="Enter group name...">
+        <button id="createGroupButton">Create Group</button>
+    </div>
     
-    
+
     <script>
         const baseURL = ''; // Replace with your backend URL
 
-        // Function to fetch and display users who have logged in
-        const displayUsers = async () => {
+        async function displayUsers() {
             try {
                 const response = await axios.get(baseURL + '/login/loggedIn');
                 const users = response.data.users;
@@ -74,63 +85,121 @@
             }
         };
 
-        document.getElementById('sendButton').addEventListener('click', async () => {
-
-            console.log(localStorage.getItem('token'))
-    const messageInput = document.getElementById('messageInput').value.trim();
-
-    if (!messageInput) {
-                alert('Please enter a message'); // Show alert if message input is empty
-                return;
-            }
-    
-
-    try {
-        const response = await axios.post(baseURL + '/chatMessages/sendMessage', {
-            message: messageInput
-        }, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-
-        console.log(response.data.message);
-        document.getElementById('messageInput').value = ''
-        // Optionally, update the UI to indicate that the message was sent successfully
-    } catch (error) {
-        console.error('Error sending message:', error);
-        // Handle error
-    }
-});
-
-
-const fetchAllMessages = async () => {
-        try {
-            const response = await axios.get(baseURL + '/chatMessages/getAllMessages', {
-                headers: {
-                    Authorization: `Bearer ${localStorage.getItem('token')}`
-                }
-            });
-            const allMessages = response.data.messages;
-            const messageList = document.getElementById('messageList');
+        async function displayMessages() {
+            try {
+                // Fetch last 10 messages from local storage
+                const messages = JSON.parse(localStorage.getItem('messages')) || [];
+                const messageList = document.getElementById('messageList');
                 messageList.innerHTML = '';
 
-                allMessages.forEach(message => {
+                messages.forEach(message => {
                     const listItem = document.createElement('li');
                     listItem.textContent = `${message.User.name}: ${message.message}`;
                     messageList.appendChild(listItem);
                 });
-            // Process the list of messages as needed
-        } catch (error) {
-            console.error('Error fetching all messages:', error);
-        }
-    };
 
+                // Fetch newer messages from the backend
+                const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null;
+                const response = await axios.get(baseURL + `/chatMessages/getAllMessages?lastMessageId=${lastMessageId}`, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const newMessages = response.data.messages;
 
-        // Call the displayUsers function when the page loads
+                // Append newer messages to the message list and update local storage
+                newMessages.forEach(message => {
+                    messages.push(message);
+                    if (messages.length > 10) {
+                        messages.shift(); // Remove oldest message if more than 10
+                    }
+                });
+                localStorage.setItem('messages', JSON.stringify(messages));
+            } catch (error) {
+                console.error('Error fetching messages:', error);
+            }
+        };
+
+        const sendMessage = async (message) => {
+            try {
+                const response = await axios.post(baseURL + '/chatMessages/sendMessage', {
+                    message: message
+                }, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                console.log(response.data.message);
+                displayMessages(); // Refresh messages after sending a new one
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        };
+
+        document.getElementById('sendButton').addEventListener('click', async () => {
+            const messageInput = document.getElementById('messageInput').value.trim();
+            if (!messageInput) {
+                alert('Please enter a message'); // Show alert if message input is empty
+                return;
+            }
+            await sendMessage(messageInput);
+            document.getElementById('messageInput').value = ''; // Clear input field after sending
+        });
+
         window.addEventListener('DOMContentLoaded', displayUsers);
-        setInterval(fetchAllMessages, 1000);
-        
+        window.addEventListener('DOMContentLoaded', displayMessages);
+        setInterval(displayMessages, 1000);
+
+
+        function handleGroupClick(groupId) {
+            // Redirect to the group management page with the group ID
+            window.location.href = `group.html?groupId=${groupId}`;
+        }
+
+        async function displayGroups() {
+            try {
+                const response = await axios.get(baseURL + '/groups');
+                const groups = response.data.groups;
+
+                const groupsList = document.getElementById('groups');
+                groupsList.innerHTML = '';
+
+                groups.forEach(group => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = group.name;
+                    listItem.addEventListener('click', () => {
+                        handleGroupClick(group.id);
+                    });
+                    groupsList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error fetching groups:', error);
+            }
+        }
+
+
+        async function createGroup() {
+            try {
+                const groupName = document.getElementById('groupNameInput').value.trim();
+                if (!groupName) {
+                    alert('Please enter a group name');
+                    return;
+                }
+
+                const response = await axios.post(baseURL + '/groups', { name: groupName });
+                alert(response.data.message);
+                displayGroups(); // Refresh groups list after creating a new group
+            } catch (error) {
+                console.error('Error creating group:', error);
+            }
+        }
+
+        // Call displayGroups on DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', displayGroups);
+
+        // Add event listener to the create group button
+        document.getElementById('createGroupButton').addEventListener('click', createGroup);
     </script>
 </body>
 </html>
+
