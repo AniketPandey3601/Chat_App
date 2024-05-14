@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!-- <!-- <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -106,4 +106,295 @@
         window.addEventListener('DOMContentLoaded', displayGroupInfo);
     </script>
 </body>
+</html> -->
+
+
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Group Management</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Group Management</h1>
+
+    <div id="groupInfo">
+        <h2>Group Name: <span id="groupName"></span></h2>
+        <h3>Group Members:</h3>
+        <ul id="groupMembers"></ul>
+        <input type="text" id="newMemberInput" placeholder="Enter user ID">
+        <button id="addMemberButton">Add Member</button>
+        <button id="leaveGroupButton">Leave Group</button>
+    </div>
+
+    <div id="messagesContainer">
+        <h2>Group Messages:</h2>
+        <ul id="messages"></ul>
+        <input type="text" id="messageInput" placeholder="Type your message...">
+        <button id="sendMessageButton">Send</button>
+    </div>
+
+
+    <div id="adminActions">
+        <h2>Admin Actions:</h2>
+        <input type="text" id="userIdInput" placeholder="Enter user ID">
+        <button id="addMemberButton">Add Member</button>
+        <button id="promoteAdminButton">Promote to Admin</button>
+        <button id="removeMemberButton">Remove Member</button>
+    </div>
+
+
+
+    <div id="groupsList">
+        <h2>Your Groups:</h2>
+        <ul id="groups"></ul>
+    </div>
+
+
+    <script>
+        const baseURL = ''; // Replace with your backend URL
+
+        // Function to display group info
+
+        async function displayGroups() {
+            try {
+                const response = await axios.get(baseURL + '/groups', {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const groups = response.data.groups;
+
+                const groupsList = document.getElementById('groups');
+                groupsList.innerHTML = '';
+
+                groups.forEach(group => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = group.name;
+                    listItem.addEventListener('click', () => {
+                        currentGroupId = group.id;
+                        localStorage.setItem('currentGroup', currentGroupId);
+                        displayGroupInfo(currentGroupId);
+                        fetchMessages(currentGroupId);
+                    });
+                    groupsList.appendChild(listItem);
+                });    } catch (error) {
+                console.error('Error fetching groups:', error);
+            }
+        }
+   
+        async function displayGroupInfo(groupId) {
+            try {
+                const response = await axios.get(baseURL + `/groups/${groupId}`, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+                const { name, members } = response.data.group;
+
+                document.getElementById('groupName').textContent = name;
+
+                const groupMembersList = document.getElementById('groupMembers');
+                groupMembersList.innerHTML = '';
+
+                members.forEach(member => {
+                    const listItem = document.createElement('li');
+                    listItem.textContent = member.name;
+                    groupMembersList.appendChild(listItem);
+                });
+            } catch (error) {
+                console.error('Error fetching group info:', error);
+            }
+        }
+
+        // Function to fetch and display messages for the group
+        async function fetchMessages(groupId) {
+    try {
+        // Get messages for the current group from localStorage
+        const storedMessages = JSON.parse(localStorage.getItem('messages')) || {};
+        const currentGroupMessages = storedMessages[groupId] || [];
+
+        // Clear the message list
+        const messageList = document.getElementById('messages');
+        messageList.innerHTML = '';
+
+        // Display messages from localStorage
+        currentGroupMessages.forEach(message => {
+            const listItem = document.createElement('li');
+            listItem.textContent = `${message.User.name}: ${message.message}`;
+            messageList.appendChild(listItem);
+        });
+
+        // Fetch newer messages from the backend
+        const lastMessageId = currentGroupMessages.length > 0 ? currentGroupMessages[currentGroupMessages.length - 1].id : null;
+        const response = await axios.get(baseURL + `/messages/${groupId}?lastMessageId=${lastMessageId}`, {
+            headers: {
+                Authorization: `Bearer ${localStorage.getItem('token')}`
+            }
+        });
+        const newMessages = response.data.messages;
+
+        // Append newer messages to the message list and update localStorage
+        newMessages.forEach(message => {
+            if (!currentGroupMessages.some(msg => msg.id === message.id)) {
+            currentGroupMessages.push(message);
+
+            }
+            if (currentGroupMessages.length > 10) {
+                currentGroupMessages.shift(); // Remove oldest message if more than 10
+            }
+        });
+
+        // Update localStorage with the new messages for the current group
+        storedMessages[groupId] = currentGroupMessages;
+        localStorage.setItem('messages', JSON.stringify(storedMessages));
+    } catch (error) {
+        console.error('Error fetching messages:', error);
+    }
+}
+
+
+        // Function to add a member to the group
+        // async function addMember() {
+        //     try {
+        //         const userId = document.getElementById('newMemberInput').value.trim();
+        //         if (!userId) {
+        //             alert('Please enter user ID');
+        //             return;
+        //         }
+
+        //         await axios.put(baseURL + `/groups/${groupId}/members`, { userId }, {
+        //             headers: {
+        //                 Authorization: `Bearer ${localStorage.getItem('token')}`
+        //             }
+        //         });
+
+        //         // Refresh group info after adding member
+        //         displayGroupInfo(localStorage.getItem('currentGroup'));
+        //         document.getElementById('newMemberInput').value = ''; // Clear input field
+        //     } catch (error) {
+        //         console.error('Error adding member:', error);
+        //     }
+        // }
+
+        async function addMember(groupId, userId) {
+            try {
+                await axios.put(`${baseURL}/groups/${groupId}/add-member`, { userId });
+                alert('User added to the group successfully.');
+
+                displayGroupInfo(localStorage.getItem('currentGroup'));
+                document.getElementById('userIdInput').value = '';
+            } catch (error) {
+                console.error('Error adding member to group:', error);
+                alert('Error adding member to group. Please try again later.');
+            }
+        }
+
+        async function promoteAdmin(groupId, userId) {
+            try {
+                await axios.put(`${baseURL}/groups/${groupId}/promote-admin`, { userId });
+                alert('User promoted to admin in the group successfully.');
+            } catch (error) {
+                console.error('Error promoting member to admin:', error);
+                alert('Error promoting member to admin. Please try again later.');
+            }
+        }
+
+
+        async function removeMember(groupId, userId) {
+            try {
+                await axios.delete(`${baseURL}/groups/${groupId}/remove-member/${userId}`);
+                alert('User removed from the group successfully.');
+            } catch (error) {
+                console.error('Error removing member from group:', error);
+                alert('Error removing member from group. Please try again later.');
+            }
+        }
+
+
+
+
+        document.getElementById('addMemberButton').addEventListener('click', () => {
+            const userId = document.getElementById('userIdInput').value.trim();
+            // Replace 'groupId' with the actual group ID
+            addMember(groupId, userId);
+        });
+
+        document.getElementById('promoteAdminButton').addEventListener('click', () => {
+            const userId = document.getElementById('userIdInput').value.trim();
+            // Replace 'groupId' with the actual group ID
+            promoteAdmin(groupId, userId);
+        });
+
+        document.getElementById('removeMemberButton').addEventListener('click', () => {
+            const userId = document.getElementById('userIdInput').value.trim();
+            // Replace 'groupId' with the actual group ID
+            removeMember(groupId, userId);
+        });
+
+        // Function to leave the group
+        async function leaveGroup() {
+            try {
+                await axios.delete(baseURL + `/groups/${localStorage.getItem('currentGroup')}/leave`, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                // Redirect to home page or another route after leaving group
+                window.location.href = 'chat.html';
+            } catch (error) {
+                console.error('Error leaving group:', error);
+            }
+        }
+
+        // Function to send a message to the group
+        async function sendMessage() {
+            try {
+                const message = document.getElementById('messageInput').value.trim();
+                if (!message) {
+                    alert('Please enter a message');
+                    return;
+                }
+
+                await axios.post(baseURL + `/messages/${localStorage.getItem('currentGroup')}/send`, { message }, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
+
+                // Fetch and display messages after sending message
+                let gpId = localStorage.getItem('currentGroup')
+                console.log(gpId)
+                fetchMessages(gpId);
+                // Clear input field after sending message
+                document.getElementById('messageInput').value = '';
+                
+            } catch (error) {
+                console.error('Error sending message:', error);
+            }
+        }
+
+        // Event listeners
+        document.getElementById('addMemberButton').addEventListener('click', addMember);
+        document.getElementById('leaveGroupButton').addEventListener('click', leaveGroup);
+        document.getElementById('sendMessageButton').addEventListener('click', sendMessage);
+
+        // Call displayGroupInfo and fetchMessages on DOMContentLoaded
+        window.addEventListener('DOMContentLoaded', async () => {
+            const groupId = localStorage.getItem('currentGroup');
+            displayGroups();
+            displayGroupInfo(groupId);
+             fetchMessages(groupId);
+        });
+
+        // setInterval(fetchMessages,1000)
+    </script>
+</body>
 </html>
+

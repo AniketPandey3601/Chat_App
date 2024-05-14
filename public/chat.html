@@ -1,4 +1,4 @@
-
+<!-- 
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -202,4 +202,75 @@
     </script>
 </body>
 </html>
-
+ -->
+ <!DOCTYPE html>
+ <html lang="en">
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+     <title>Group Chat App</title>
+     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+ </head>
+ <body>
+     <h1>Group Chat App</h1>
+     <div id="groupsList">
+         <h2>Your Groups:</h2>
+         <ul id="groups"></ul>
+         <input type="text" id="groupNameInput" placeholder="Enter group name...">
+         <button id="createGroupButton">Create Group</button>
+     </div>
+ 
+     <script>
+         const baseURL = ''; // Replace with your backend URL
+ 
+         // Fetch and display user's groups
+         async function displayGroups() {
+             try {
+                 const response = await axios.get(baseURL + '/groups', {
+                     headers: {
+                         Authorization: `Bearer ${localStorage.getItem('token')}`
+                     }
+                 });
+                 const groups = response.data.groups;
+ 
+                 const groupsList = document.getElementById('groups');
+                 groupsList.innerHTML = '';
+ 
+                 groups.forEach(group => {
+                     const listItem = document.createElement('li');
+                     listItem.textContent = group.name;
+                     listItem.addEventListener('click', () => {
+                         localStorage.setItem('currentGroup', group.id);
+                         window.location.href = 'group.html';
+                     });
+                     groupsList.appendChild(listItem);
+                 });
+             } catch (error) {
+                 console.error('Error fetching groups:', error);
+             }
+         }
+ 
+         // Event listener for creating a group
+         document.getElementById('createGroupButton').addEventListener('click', async () => {
+             const groupName = document.getElementById('groupNameInput').value.trim();
+             if (groupName) {
+                 try {
+                     await axios.post(baseURL + '/groups', { name: groupName }, {
+                         headers: {
+                             Authorization: `Bearer ${localStorage.getItem('token')}`
+                         }
+                     });
+                     displayGroups(); // Refresh groups list after creating a new group
+                     document.getElementById('groupNameInput').value = ''; // Clear input field after creating
+                 } catch (error) {
+                     console.error('Error creating group:', error);
+                 }
+             }
+         });
+ 
+         // Call displayGroups on DOMContentLoaded
+         window.addEventListener('DOMContentLoaded', displayGroups);
+     </script>
+ </body>
+ </html>
+ 

@@ -1,21 +1,16 @@
 const { Sequelize, DataTypes } = require('sequelize');
 const sequelize = require('./index')
 
-const messages = sequelize.define('ChatMessage', {
+const GroupMessage = sequelize.define('GroupMessage', {
     id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    userId: {
-        type: DataTypes.INTEGER,
-        allowNull: false
-    },
     message: {
-        type: DataTypes.STRING,
+        type: DataTypes.TEXT,
         allowNull: false
     }
 });
 
-
-module.exports = messages;
+module.exports = GroupMessage;

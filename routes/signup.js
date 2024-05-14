@@ -28,7 +28,7 @@ router.post('', async (req, res) => {
 
     console.log('Successfully Signed Up');
    
-    res.status(200);
+    res.sendStatus(200);
   } catch (error) {
     console.error('Error signing up:', error);
     res.status(500).send('Error signing up. Please try again later.');
