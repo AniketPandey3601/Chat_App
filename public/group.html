@@ -127,8 +127,8 @@
         <h2>Group Name: <span id="groupName"></span></h2>
         <h3>Group Members:</h3>
         <ul id="groupMembers"></ul>
-        <input type="text" id="newMemberInput" placeholder="Enter user ID">
-        <button id="addMemberButton">Add Member</button>
+        <!-- <input type="text" id="newMemberInput" placeholder="Enter user ID">
+        <button id="addMemberButton">Add Member</button> -->
         <button id="leaveGroupButton">Leave Group</button>
     </div>
 
@@ -160,6 +160,7 @@
         const baseURL = ''; // Replace with your backend URL
 
         // Function to display group info
+
 
         async function displayGroups() {
             try {
@@ -284,7 +285,11 @@
 
         async function addMember(groupId, userId) {
             try {
-                await axios.put(`${baseURL}/groups/${groupId}/add-member`, { userId });
+                await axios.put(`${baseURL}/groups/${groupId}/add-member`, { userId }, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 alert('User added to the group successfully.');
 
                 displayGroupInfo(localStorage.getItem('currentGroup'));
@@ -297,7 +302,11 @@
 
         async function promoteAdmin(groupId, userId) {
             try {
-                await axios.put(`${baseURL}/groups/${groupId}/promote-admin`, { userId });
+                await axios.put(`${baseURL}/groups/${groupId}/promote-admin`, { userId }, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 alert('User promoted to admin in the group successfully.');
             } catch (error) {
                 console.error('Error promoting member to admin:', error);
@@ -308,7 +317,11 @@
 
         async function removeMember(groupId, userId) {
             try {
-                await axios.delete(`${baseURL}/groups/${groupId}/remove-member/${userId}`);
+                await axios.delete(`${baseURL}/groups/${groupId}/remove-member/${userId}`, {
+                    headers: {
+                        Authorization: `Bearer ${localStorage.getItem('token')}`
+                    }
+                });
                 alert('User removed from the group successfully.');
             } catch (error) {
                 console.error('Error removing member from group:', error);
@@ -322,18 +335,23 @@
         document.getElementById('addMemberButton').addEventListener('click', () => {
             const userId = document.getElementById('userIdInput').value.trim();
             // Replace 'groupId' with the actual group ID
+            let groupId = localStorage.getItem('currentGroup')
+                
             addMember(groupId, userId);
         });
 
         document.getElementById('promoteAdminButton').addEventListener('click', () => {
             const userId = document.getElementById('userIdInput').value.trim();
             // Replace 'groupId' with the actual group ID
+            let groupId = localStorage.getItem('currentGroup')
+                
             promoteAdmin(groupId, userId);
         });
 
         document.getElementById('removeMemberButton').addEventListener('click', () => {
             const userId = document.getElementById('userIdInput').value.trim();
             // Replace 'groupId' with the actual group ID
+            let groupId = localStorage.getItem('currentGroup')
             removeMember(groupId, userId);
         });
 
@@ -381,7 +399,7 @@
         }
 
         // Event listeners
-        document.getElementById('addMemberButton').addEventListener('click', addMember);
+        // document.getElementById('addMemberButton').addEventListener('click', addMember);
         document.getElementById('leaveGroupButton').addEventListener('click', leaveGroup);
         document.getElementById('sendMessageButton').addEventListener('click', sendMessage);
 

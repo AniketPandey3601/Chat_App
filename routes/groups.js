@@ -112,6 +112,9 @@ const authenticateToken = require('../middleware/authenticateToken');
 const UserGroup = require('../models/UserGroup');
 const User = require('../models/User')
 // Get all groups for the authenticated user
+
+
+
 router.get('', authenticateToken, async (req, res) => {
     try {
         const userId = req.user.userId;

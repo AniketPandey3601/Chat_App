@@ -30,8 +30,8 @@ app.use(cors({
 
 }))
 
-User.belongsToMany(Group, { through: UserGroup });
-Group.belongsToMany(User, { through: UserGroup });
+User.belongsToMany(Group, { through: UserGroup ,foreignKey:'groupId'});
+Group.belongsToMany(User, { through: UserGroup ,foreignKey:'userId'});
 
 
 
