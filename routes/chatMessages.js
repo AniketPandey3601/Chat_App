@@ -66,6 +66,7 @@ router.post('/:groupId/send', authenticateToken, async (req, res) => {
             message: message,
             userId: req.user.userId
         });
+        io.emit('sendMessage', newMessage);
         res.status(201).json({ message: 'Message sent successfully', newMessage });
     } catch (error) {
         console.error('Error sending message:', error);

@@ -119,6 +119,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Group Management</title>
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.1.3/socket.io.js"></script>
 </head>
 <body>
     <h1>Group Management</h1>
@@ -159,7 +160,36 @@
     <script>
         const baseURL = ''; // Replace with your backend URL
 
+        const userId = localStorage.getItem('userId');
+
+        const socket = io('http://localhost:3000',{
+            extraHeaders: {
+                'X-user-Id': userId
+            }
+        });
+
+        socket.on('roomJoined', (message) => {
+        // Display the message in the frontend
+        const messageList = document.getElementById('messages');
+        const listItem = document.createElement('li');
+        listItem.textContent = message;
+        messageList.appendChild(listItem);
+    });
+
         // Function to display group info
+        function displayMessage(message) {
+            const messagesDiv = document.getElementById('messages');
+            const messageDiv = document.createElement('div');
+            messageDiv.textContent = `${message.username}: ${message.message}`;
+            messagesDiv.appendChild(messageDiv);
+        }
+
+        
+
+
+     
+
+document.getElementById('sendMessageButton').addEventListener('click', sendMessage);
 
 
         async function displayGroups() {
@@ -179,9 +209,11 @@
                     listItem.textContent = group.name;
                     listItem.addEventListener('click', () => {
                         currentGroupId = group.id;
+                       
                         localStorage.setItem('currentGroup', currentGroupId);
                         displayGroupInfo(currentGroupId);
-                        fetchMessages(currentGroupId);
+                        // fetchMessages(currentGroupId);
+                        
                     });
                     groupsList.appendChild(listItem);
                 });    } catch (error) {
@@ -208,80 +240,18 @@
                     listItem.textContent = member.name;
                     groupMembersList.appendChild(listItem);
                 });
+
+                
+
+                joinRoom(groupId);
+
+
             } catch (error) {
                 console.error('Error fetching group info:', error);
             }
         }
 
-        // Function to fetch and display messages for the group
-        async function fetchMessages(groupId) {
-    try {
-        // Get messages for the current group from localStorage
-        const storedMessages = JSON.parse(localStorage.getItem('messages')) || {};
-        const currentGroupMessages = storedMessages[groupId] || [];
-
-        // Clear the message list
-        const messageList = document.getElementById('messages');
-        messageList.innerHTML = '';
-
-        // Display messages from localStorage
-        currentGroupMessages.forEach(message => {
-            const listItem = document.createElement('li');
-            listItem.textContent = `${message.User.name}: ${message.message}`;
-            messageList.appendChild(listItem);
-        });
-
-        // Fetch newer messages from the backend
-        const lastMessageId = currentGroupMessages.length > 0 ? currentGroupMessages[currentGroupMessages.length - 1].id : null;
-        const response = await axios.get(baseURL + `/messages/${groupId}?lastMessageId=${lastMessageId}`, {
-            headers: {
-                Authorization: `Bearer ${localStorage.getItem('token')}`
-            }
-        });
-        const newMessages = response.data.messages;
-
-        // Append newer messages to the message list and update localStorage
-        newMessages.forEach(message => {
-            if (!currentGroupMessages.some(msg => msg.id === message.id)) {
-            currentGroupMessages.push(message);
-
-            }
-            if (currentGroupMessages.length > 10) {
-                currentGroupMessages.shift(); // Remove oldest message if more than 10
-            }
-        });
-
-        // Update localStorage with the new messages for the current group
-        storedMessages[groupId] = currentGroupMessages;
-        localStorage.setItem('messages', JSON.stringify(storedMessages));
-    } catch (error) {
-        console.error('Error fetching messages:', error);
-    }
-}
-
-
-        // Function to add a member to the group
-        // async function addMember() {
-        //     try {
-        //         const userId = document.getElementById('newMemberInput').value.trim();
-        //         if (!userId) {
-        //             alert('Please enter user ID');
-        //             return;
-        //         }
-
-        //         await axios.put(baseURL + `/groups/${groupId}/members`, { userId }, {
-        //             headers: {
-        //                 Authorization: `Bearer ${localStorage.getItem('token')}`
-        //             }
-        //         });
-
-        //         // Refresh group info after adding member
-        //         displayGroupInfo(localStorage.getItem('currentGroup'));
-        //         document.getElementById('newMemberInput').value = ''; // Clear input field
-        //     } catch (error) {
-        //         console.error('Error adding member:', error);
-        //     }
-        // }
+     
 
         async function addMember(groupId, userId) {
             try {
@@ -322,7 +292,8 @@
                         Authorization: `Bearer ${localStorage.getItem('token')}`
                     }
                 });
-                alert('User removed from the group successfully.');
+                alert(`${userId} removed from the group successfully.`);
+                displayGroupInfo(groupId)
             } catch (error) {
                 console.error('Error removing member from group:', error);
                 alert('Error removing member from group. Please try again later.');
@@ -357,12 +328,16 @@
 
         // Function to leave the group
         async function leaveGroup() {
+
+            let groupId = localStorage.getItem('currentGroup')
             try {
-                await axios.delete(baseURL + `/groups/${localStorage.getItem('currentGroup')}/leave`, {
+                await axios.delete(baseURL + `/groups/${groupId}/leave`, {
                     headers: {
                         Authorization: `Bearer ${localStorage.getItem('token')}`
                     }
                 });
+
+                leaveRoom(groupId);
 
                 // Redirect to home page or another route after leaving group
                 window.location.href = 'chat.html';
@@ -370,45 +345,77 @@
                 console.error('Error leaving group:', error);
             }
         }
+      
+
+        function joinRoom(groupId) {
+            console.log(groupId)
+        socket.emit('joinRoom', groupId);
+        
+    }
+
+    // Function to leave a room
+    function leaveRoom(groupId) {
+        socket.emit('leaveRoom', groupId);
+    }
+
+
+    socket.on('roomLeft', (message) => {
+        // Display the message in the frontend
+        const messageList = document.getElementById('messages');
+        const listItem = document.createElement('li');
+        listItem.textContent = message;
+        messageList.appendChild(listItem);
+    });
 
         // Function to send a message to the group
         async function sendMessage() {
+        
+
+
             try {
-                const message = document.getElementById('messageInput').value.trim();
-                if (!message) {
-                    alert('Please enter a message');
-                    return;
-                }
-
-                await axios.post(baseURL + `/messages/${localStorage.getItem('currentGroup')}/send`, { message }, {
-                    headers: {
-                        Authorization: `Bearer ${localStorage.getItem('token')}`
-                    }
-                });
-
-                // Fetch and display messages after sending message
-                let gpId = localStorage.getItem('currentGroup')
-                console.log(gpId)
-                fetchMessages(gpId);
-                // Clear input field after sending message
-                document.getElementById('messageInput').value = '';
-                
-            } catch (error) {
-                console.error('Error sending message:', error);
-            }
+        const message = document.getElementById('messageInput').value.trim();
+        if (!message) {
+            alert('Please enter a message');
+            return;
         }
+        let groupId = localStorage.getItem('currentGroup')
+        let userId = localStorage.getItem('userId')
+
+        // Emit 'sendMessage' event to the server
+        sendMessageToRoom(groupId, message,userId);
+
+        // Clear input field after sending message
+        document.getElementById('messageInput').value = '';
+    } catch (error) {
+        console.error('Error sending message:', error);
+    }
+        }
+
+
+        function sendMessageToRoom(groupId, message,userId) {
+        socket.emit('messageToRoom', { room: groupId, message,userId });
+    }
+
+    // Function to handle received messages
+    socket.on('message', (data) => {
+        // Handle received message
+        console.log('Received message:', data);
+        displayMessage(data)
+        // Update UI to display the received message
+    });
 
         // Event listeners
         // document.getElementById('addMemberButton').addEventListener('click', addMember);
         document.getElementById('leaveGroupButton').addEventListener('click', leaveGroup);
-        document.getElementById('sendMessageButton').addEventListener('click', sendMessage);
+       
 
         // Call displayGroupInfo and fetchMessages on DOMContentLoaded
         window.addEventListener('DOMContentLoaded', async () => {
             const groupId = localStorage.getItem('currentGroup');
+            displayGroupInfo(groupId)
             displayGroups();
-            displayGroupInfo(groupId);
-             fetchMessages(groupId);
+            
+            //  fetchMessages(groupId);
         });
 
         // setInterval(fetchMessages,1000)

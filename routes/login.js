@@ -81,7 +81,7 @@ router.post('', async (req, res) => {
         //  console.log(user.id)
 
         // Send the JWT token to the frontend
-        res.status(200).json({ token: token });
+        res.status(200).json({ token: token ,userId:user.id});
     } catch (error) {
         console.error('Error logging in:', error);
         res.status(500).send('Error logging in. Please try again later.');
