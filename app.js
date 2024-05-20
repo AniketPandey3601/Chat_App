@@ -7,6 +7,11 @@ const server = http.createServer(app);
 const io = socketIo(server);
 // const io = require('socket.io')(http);
 
+const multer = require('multer');
+const multerS3 = require('multer-s3');
+const aws = require('aws-sdk');
+require('./messagearchiver')
+
 
 // app.use('/socket.io', express.static(__dirname + '/node_modules/socket.io/client-dist'));
 const cors = require('cors');
@@ -21,6 +26,7 @@ const GroupMessage= require('./models/groupmsg');
 const UserGroup = require('./models/UserGroup')
 const User = require('./models/User')
 const Group = require('./models/Group')
+const path  = require('path')
 require('dotenv').config();
 
 app.use(bodyParser.json());
@@ -29,42 +35,52 @@ app.use(bodyParser.urlencoded({ extended: true }));
 
 
 app.use(express.static('public'));
-// const corsOpts = {
-//     origin: '*',
-  
-//     methods: [
-//       'GET',
-//       'POST',
-//     ],
-  
-//     allowedHeaders: [
-//       'Content-Type',
-//     ],
-//   };
-  
-//   app.use(cors(corsOpts));
+
+
+app.get('/', (req, res, next) => {
+  res.sendFile(path.join(__dirname, 'public', 'signup.html'));
+
+});
 
 
 app.use(cors({
-    origin: 'http://localhost:3000', // Allow requests from a specific origin
-    methods: ['GET', 'POST'],      // Allow only specific HTTP methods
-    allowedHeaders: ['Content-Type'], // Allow only specific headers
-    credentials: true              // Allow credentials (e.g., cookies)
+    origin: '*', 
+    methods: ['GET', 'POST'],     
+    allowedHeaders: ['Content-Type'], 
+    credentials: true             
 }));
 
+
+aws.config.update({
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY,
+    region: process.env.AWS_REGION
+  });
+
+  const s3BucketName = process.env.AWS_S3_BUCKET_NAME;
+  if (!s3BucketName) {
+    throw new Error('S3 bucket name is required');
+  }
+  
+
+  const s3 = new aws.S3();
+
+
+  
+
 io.use((socket, next) => {
-    const userId = socket.handshake.headers['x-user-id']; // Retrieve user ID from headers
+    const userId = socket.handshake.headers['x-user-id']; 
 
     console.log("this is",userId)
+
     if (userId) {
         socket.userId = userId;
         
         console.log(socket.userId)
         
-        // Attach user ID to socket object
         next();
     } else {
-        // Handle missing user ID header
+       
         next(new Error('Missing X-user-Id header'));
     }
 });
@@ -72,7 +88,7 @@ io.use((socket, next) => {
 
 io.on('connection', (socket) => {
     console.log('A user connected');
-    // Join a room
+   
     socket.on('joinRoom', async(room) => {
   
       console.log(`${socket.id} just joined room ${room}`);
@@ -90,7 +106,7 @@ io.on('connection', (socket) => {
     }
     });
   
-    // Leave a room
+  
     socket.on('leaveRoom', async(room) => {
       console.log(`${socket.id} has left room ${room}`);
   
@@ -111,24 +127,23 @@ io.on('connection', (socket) => {
     
   
   
-    // Post a message to a specific room
     socket.on('messageToRoom', async (data) => {
         console.log(`${data.userId} posted a message to room ${data.room}: ${data.message}`);
       
         try {
-            // Fetch username from User table
+           
 
             const user = await User.findOne({ where: { id: data.userId} });
             if (user) {
                 const username = user.name;
-                // Save message to database
+                
                 await GroupMessage.create({
                     groupId: data.room,
                     userId: data.userId,
                     message: data.message,
-                     // Save username along with message
+                    
                 });
-                // Emit message to the room
+              
                 io.to(data.room).emit('message', {
             
                     id: data.userId,
@@ -144,8 +159,7 @@ io.on('connection', (socket) => {
 
 
   
-  
-    // Send a message to all connected clients
+ 
     socket.on('messageToAll', (data) => {
       console.log(`${socket.id} sent a message to all clients: ${data.message}`);
   
@@ -155,12 +169,44 @@ io.on('connection', (socket) => {
       });  
   
     });
-    // Disconnect event
+
+
+    socket.on('uploadFile', async (fileData) => {
+        try {
+          
+          
+          const fileKey = Date.now().toString() + '-' + fileData.originalname;
+      
+         
+          const params = {
+            Bucket: process.env.AWS_S3_BUCKET_NAME,
+            Key: fileKey,
+            Body: fileData.buffer, 
+             ACL:'public-read',
+            ContentType: fileData.mimetype  
+          };
+      
+         
+          await s3.upload(params).promise();
+      
+         
+          const fileUrl = `https://${process.env.AWS_S3_BUCKET_NAME}.s3.amazonaws.com/${fileKey}`;
+      
+          io.emit('fileUploaded', { fileUrl });
+        } catch (error) {
+          console.error('Error uploading file to S3:', error);
+        }
+      });
+
+
+
+ 
     socket.on('disconnect', () => {
   
       console.log(`${socket.id} disconnected`);
   
     });
+
   
   });
 
