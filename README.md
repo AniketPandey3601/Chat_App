@@ -1,0 +1,3 @@
+- It is a real time group chat application where users can create groups and message each other.
+- They can also share multimedia files with each other like images , videos etc.
+- Want to take a look?
